@@ -132,88 +132,93 @@ app.get('/.well-known/ai-plugin.json', (req, res) => {
 });
 
 // Initialize MCP Server for ChatGPT Apps (native MCP support)
-const mcpServer = new McpServer({
-  name: 'paypal-invoicing',
-  version: '1.0.0',
-});
+// Create a factory function to generate new server instances per request
+function createMcpServer() {
+  const server = new McpServer({
+    name: 'paypal-invoicing',
+    version: '1.0.0',
+  });
 
-// Register PayPal invoice tools with MCP protocol
-mcpServer.tool(
-  'create_invoice',
-  'Create a draft PayPal invoice with line items and QR code',
-  {
-    recipient_email: z.string().email().describe('Recipient email address'),
-    currency: z.string().default('USD').describe('Currency code'),
-    note: z.string().optional().describe('Invoice note'),
-    items: z.array(z.object({
-      name: z.string().describe('Item name'),
-      quantity: z.number().positive().default(1).describe('Quantity'),
-      unit_amount: z.number().positive().describe('Unit price'),
-    })).optional().describe('Line items'),
-    amount_override: z.number().positive().optional().describe('Total amount override'),
-  },
-  async (input) => {
-    logger.info('MCP: create_invoice', input);
-    const tool = tools['create_invoice' as keyof typeof tools];
-    const result = await tool.execute(input, {
-      toolCallId: crypto.randomUUID(),
-      messages: [],
-    });
-    return { content: [{ type: 'text', text: result }] };
-  }
-);
+  // Register PayPal invoice tools with MCP protocol
+  server.tool(
+    'create_invoice',
+    'Create a draft PayPal invoice with line items and QR code',
+    {
+      recipient_email: z.string().email().describe('Recipient email address'),
+      currency: z.string().default('USD').describe('Currency code'),
+      note: z.string().optional().describe('Invoice note'),
+      items: z.array(z.object({
+        name: z.string().describe('Item name'),
+        quantity: z.number().positive().default(1).describe('Quantity'),
+        unit_amount: z.number().positive().describe('Unit price'),
+      })).optional().describe('Line items'),
+      amount_override: z.number().positive().optional().describe('Total amount override'),
+    },
+    async (input) => {
+      logger.info('MCP: create_invoice', input);
+      const tool = tools['create_invoice' as keyof typeof tools];
+      const result = await tool.execute(input, {
+        toolCallId: crypto.randomUUID(),
+        messages: [],
+      });
+      return { content: [{ type: 'text', text: result }] };
+    }
+  );
 
-mcpServer.tool(
-  'send_invoice',
-  'Send an existing PayPal invoice to the recipient',
-  {
-    invoice_id: z.string().describe('Invoice ID to send'),
-  },
-  async (input) => {
-    logger.info('MCP: send_invoice', input);
-    const tool = tools['send_invoice' as keyof typeof tools];
-    const result = await tool.execute(input, {
-      toolCallId: crypto.randomUUID(),
-      messages: [],
-    });
-    return { content: [{ type: 'text', text: result }] };
-  }
-);
+  server.tool(
+    'send_invoice',
+    'Send an existing PayPal invoice to the recipient',
+    {
+      invoice_id: z.string().describe('Invoice ID to send'),
+    },
+    async (input) => {
+      logger.info('MCP: send_invoice', input);
+      const tool = tools['send_invoice' as keyof typeof tools];
+      const result = await tool.execute(input, {
+        toolCallId: crypto.randomUUID(),
+        messages: [],
+      });
+      return { content: [{ type: 'text', text: result }] };
+    }
+  );
 
-mcpServer.tool(
-  'get_invoice',
-  'Get details of a specific PayPal invoice',
-  {
-    invoice_id: z.string().describe('Invoice ID to retrieve'),
-  },
-  async (input) => {
-    logger.info('MCP: get_invoice', input);
-    const tool = tools['get_invoice' as keyof typeof tools];
-    const result = await tool.execute(input, {
-      toolCallId: crypto.randomUUID(),
-      messages: [],
-    });
-    return { content: [{ type: 'text', text: result }] };
-  }
-);
+  server.tool(
+    'get_invoice',
+    'Get details of a specific PayPal invoice',
+    {
+      invoice_id: z.string().describe('Invoice ID to retrieve'),
+    },
+    async (input) => {
+      logger.info('MCP: get_invoice', input);
+      const tool = tools['get_invoice' as keyof typeof tools];
+      const result = await tool.execute(input, {
+        toolCallId: crypto.randomUUID(),
+        messages: [],
+      });
+      return { content: [{ type: 'text', text: result }] };
+    }
+  );
 
-mcpServer.tool(
-  'list_invoices',
-  'List PayPal invoices with optional filters',
-  {
-    page: z.number().optional().describe('Page number'),
-    page_size: z.number().optional().describe('Results per page'),
-  },
-  async (input) => {
-    logger.info('MCP: list_invoices', input);
-    const tool = tools['list_invoices' as keyof typeof tools];
-    const result = await tool.execute(input || {}, {
-      toolCallId: crypto.randomUUID(),
-      messages: [],
-    });
-    return { content: [{ type: 'text', text: result }] };
-  }
-);
+  server.tool(
+    'list_invoices',
+    'List PayPal invoices with optional filters',
+    {
+      page: z.number().optional().describe('Page number'),
+      page_size: z.number().optional().describe('Results per page'),
+    },
+    async (input) => {
+      logger.info('MCP: list_invoices', input);
+      const tool = tools['list_invoices' as keyof typeof tools];
+      const result = await tool.execute(input || {}, {
+        toolCallId: crypto.randomUUID(),
+        messages: [],
+      });
+      return { content: [{ type: 'text', text: result }] };
+    }
+  );
+
+  return server;
+}
 
 // MCP endpoint - OPTIONS handler for CORS preflight
 app.options(mcpPath, (req, res) => {
@@ -235,6 +240,7 @@ app.get(mcpPath, (req, res) => {
 // MCP endpoint - POST handler for actual MCP protocol
 app.post(mcpPath, async (req, res) => {
   let transport: any = null;
+  let server: any = null;
   
   try {
     // Log incoming request for debugging
@@ -251,6 +257,9 @@ app.post(mcpPath, async (req, res) => {
     if (!req.headers.accept || !req.headers.accept.includes('text/event-stream')) {
       req.headers.accept = 'application/json, text/event-stream';
     }
+
+    // Create new server instance for this request (stateless HTTP)
+    server = createMcpServer();
 
     // Create new transport for this request
     transport = new StreamableHTTPServerTransport({
@@ -270,7 +279,7 @@ app.post(mcpPath, async (req, res) => {
     });
 
     // Connect MCP server to transport
-    await mcpServer.connect(transport);
+    await server.connect(transport);
     
     // Handle the MCP request
     await transport.handleRequest(req, res, req.body);
