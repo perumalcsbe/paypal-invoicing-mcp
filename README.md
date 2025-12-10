@@ -1,6 +1,6 @@
-# PayPal Invoicing MCP Server
+# PayPal Invoicing AI Agents
 
-A Model Context Protocol (MCP) server that provides PayPal invoicing capabilities using the PayPal Agent Toolkit. This server enables AI assistants to create, send, retrieve, and list PayPal invoices.
+AI agent servers for PayPal invoicing using the PayPal Agent Toolkit. Build agents for both **Claude (MCP)** and **ChatGPT (OpenAI)**.
 
 **✨ Ready to run in GitHub Codespaces!**
 
@@ -10,8 +10,10 @@ A Model Context Protocol (MCP) server that provides PayPal invoicing capabilitie
 - **Send Invoice**: Send invoices to recipients via email
 - **Get Invoice**: Retrieve full details of a specific invoice
 - **List Invoices**: List all invoices with pagination support
+- **Dual Server Support**: 
+  - **MCP Server** (port 3333) - For Claude Desktop
+  - **ChatGPT Server** (port 3334) - For ChatGPT/GPTs
 - **GitHub Codespaces**: Pre-configured development environment
-- **MCP Compatible**: Works with Claude Desktop and other MCP clients
 
 ## Quick Start with GitHub Codespaces
 
@@ -58,13 +60,27 @@ MCP_PATH=/mcp
 npm run build
 ```
 
-## Local Development
+## Quick Start
 
-### Option 1: GitHub Codespaces (Recommended)
+### Choose Your AI Platform
 
-Click the "Open in Codespaces" badge above and everything is set up for you!
+**For Claude (MCP):**
+```bash
+npm run dev              # Runs on port 3333
+```
+See [SETUP.md](./SETUP.md) for Claude Desktop integration
 
-### Option 2: Local Machine
+**For ChatGPT:**
+```bash
+npm run dev:chatgpt      # Runs on port 3334
+```
+See [CHATGPT_SETUP.md](./CHATGPT_SETUP.md) for GPT integration
+
+### GitHub Codespaces (Recommended)
+
+Click the badge above and both servers are ready to use!
+
+### Local Machine
 
 ```bash
 # Install dependencies
@@ -72,15 +88,17 @@ npm install
 
 # Create .env file (see below)
 
-# Development mode with hot-reloading
+# Run MCP server (Claude)
 npm run dev
+
+# Or run ChatGPT server
+npm run dev:chatgpt
 
 # Production mode
 npm run build
-npm start
+npm start              # MCP server
+npm run start:chatgpt  # ChatGPT server
 ```
-
-The server will be available at `http://localhost:3333/mcp`.
 
 ## Testing
 
