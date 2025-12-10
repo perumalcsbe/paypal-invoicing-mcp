@@ -59,17 +59,17 @@ app.get('/', (req, res) => {
    MCP Endpoint (GET & POST)
    Handles both SSE streams and JSON-RPC messages
 -------------------------------- */
-const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: () => crypto.randomUUID(),
-});
-
-// Connect once
-await mcpServer.connect(transport);
-
-// Handle both GET (for SSE) and POST (for messages)
 app.all(mcpPath, async (req, res) => {
   try {
     logger.info(`MCP ${req.method} request received`);
+    
+    // Create a new transport for EACH request (stateless HTTP)
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => crypto.randomUUID(),
+    });
+    
+    // Connect this transport to the MCP server
+    await mcpServer.connect(transport);
     
     // Let the transport handle the request completely
     // Do NOT pass pre-parsed body - let transport read raw stream
