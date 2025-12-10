@@ -8,6 +8,18 @@ import { registerInvoiceTools } from './mcp/invoices.js';
 
 const app = express();
 
+// CORS middleware for ChatGPT Apps
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, mcp-session-id');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Conditionally apply JSON parsing - skip for MCP endpoint
 app.use((req, res, next) => {
   if (req.path === '/mcp') {
