@@ -7,7 +7,15 @@ import { logger } from './utils/logger.js';
 import { registerInvoiceTools } from './mcp/invoices.js';
 
 const app = express();
-app.use(express.json());
+
+// Conditionally apply JSON parsing - skip for MCP endpoint
+app.use((req, res, next) => {
+  if (req.path === '/mcp') {
+    // Let MCP transport handle raw body parsing
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
 const port = parseInt(process.env.PORT || '8080', 10);
 const mcpPath = '/mcp';
@@ -61,16 +69,17 @@ await mcpServer.connect(transport);
 // Handle both GET (for SSE) and POST (for messages)
 app.all(mcpPath, async (req, res) => {
   try {
-    logger.info(`MCP ${req.method} request received:`, req.body?.method || 'SSE connection');
+    logger.info(`MCP ${req.method} request received`);
     
-    // Let the transport handle the request
-    await transport.handleRequest(req, res, req.body);
+    // Let the transport handle the request completely
+    // Do NOT pass pre-parsed body - let transport read raw stream
+    await transport.handleRequest(req, res);
     
   } catch (error: any) {
     logger.error("MCP Error:", error);
     
     if (!res.headersSent) {
-      res.status(500).json({
+      res.status(500).setHeader('Content-Type', 'application/json').json({
         jsonrpc: "2.0",
         error: {
           code: -32603,
