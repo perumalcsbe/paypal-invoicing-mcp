@@ -25,15 +25,10 @@
     }
   },
   
-  "forwardPorts": [3333, 3334],
+  "forwardPorts": [3333],
   "portsAttributes": {
     "3333": {
-      "label": "MCP Server (Claude)",
-      "onAutoForward": "notify",
-      "visibility": "public"
-    },
-    "3334": {
-      "label": "ChatGPT API Server",
+      "label": "ChatGPT App Server",
       "onAutoForward": "notify",
       "visibility": "public"
     }

@@ -1,21 +1,20 @@
-# PayPal Invoicing AI Agents
+# PayPal Invoicing - ChatGPT App
 
-Build **ChatGPT Apps** and **Claude MCP Servers** for PayPal invoicing using the PayPal Agent Toolkit.
+Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.
 
-**🤖 Build ChatGPT Apps** - Publish to ChatGPT App Store  
-**🔧 Claude Integration** - MCP server for Claude Desktop  
-**✨ GitHub Codespaces Ready** - Start coding in 2 minutes
+**🤖 ChatGPT App** - Ready to publish to ChatGPT App Store  
+**✨ GitHub Codespaces Ready** - Start developing in 2 minutes  
+**🎨 Rich UI** - Beautiful formatted responses with tables and emoji
 
 ## Features
 
-- **Create Invoice**: Create draft PayPal invoices with line items and QR codes
-- **Send Invoice**: Send invoices to recipients via email
-- **Get Invoice**: Retrieve full details of a specific invoice
-- **List Invoices**: List all invoices with pagination support
-- **Dual Server Support**: 
-  - **MCP Server** (port 3333) - For Claude Desktop
-  - **ChatGPT Server** (port 3334) - For ChatGPT/GPTs
-- **GitHub Codespaces**: Pre-configured development environment
+- ✅ **Create Invoice** - Create draft PayPal invoices with line items and QR codes
+- ✅ **Send Invoice** - Send invoices to recipients via email
+- ✅ **Get Invoice** - Retrieve full details of a specific invoice
+- ✅ **List Invoices** - List all invoices with pagination
+- ✅ **Rich UI** - Beautiful markdown formatting with tables and emoji
+- ✅ **ChatGPT App Ready** - Native ChatGPT app support
+- ✅ **GitHub Codespaces** - Pre-configured development environment
 
 ## Quick Start with GitHub Codespaces
 
@@ -29,9 +28,10 @@ Build **ChatGPT Apps** and **Claude MCP Servers** for PayPal invoicing using the
 
 ## Prerequisites
 
-- PayPal Developer Account
+- PayPal Developer Account ([Sign up](https://developer.paypal.com/))
 - PayPal API credentials (Client ID and Secret)
-- (Optional) GitHub account for Codespaces
+- GitHub account (for Codespaces)
+- ChatGPT Plus account (to use ChatGPT Apps)
 
 ## Setup
 
@@ -49,11 +49,13 @@ Create a `.env` file in the root directory:
 # PayPal API Credentials
 PAYPAL_CLIENT_ID=your_client_id_here
 PAYPAL_CLIENT_SECRET=your_client_secret_here
-PAYPAL_ENVIRONMENT=SANDBOX  # or 'PRODUCTION'
+PAYPAL_ENVIRONMENT=SANDBOX
 
-# Server Configuration
+# OpenAI API Key (optional, for testing /chat endpoint)
+OPENAI_API_KEY=sk-proj-...
+
+# Server Configuration  
 PORT=3333
-MCP_PATH=/mcp
 ```
 
 ### 3. Build the Project
@@ -64,23 +66,12 @@ npm run build
 
 ## Quick Start
 
-### Choose Your AI Platform
-
-**For Claude (MCP):**
-```bash
-npm run dev              # Runs on port 3333
-```
-See [SETUP.md](./SETUP.md) for Claude Desktop integration
-
-**For ChatGPT:**
-```bash
-npm run dev:chatgpt      # Runs on port 3334
-```
-See [CHATGPT_SETUP.md](./CHATGPT_SETUP.md) for GPT integration
-
 ### GitHub Codespaces (Recommended)
 
-Click the badge above and both servers are ready to use!
+1. Click the badge above
+2. Wait for setup (~2 minutes)
+3. Run: `npm run dev`
+4. Add to ChatGPT with your Codespace URL!
 
 ### Local Machine
 
@@ -90,24 +81,40 @@ npm install
 
 # Create .env file (see below)
 
-# Run MCP server (Claude)
+# Development mode with hot-reloading
 npm run dev
-
-# Or run ChatGPT server
-npm run dev:chatgpt
 
 # Production mode
 npm run build
-npm start              # MCP server
-npm run start:chatgpt  # ChatGPT server
+npm start
 ```
+
+The server runs on port **3333**.
 
 ## Testing
 
-Run the test script to verify the server is working:
+Test the server is working:
 
 ```bash
-./test-mcp.sh
+# Health check
+curl http://localhost:3333/health
+
+# List available actions
+curl http://localhost:3333/actions
+
+# Test creating an invoice
+curl -X POST http://localhost:3333/actions/create_invoice \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient_email": "test@example.com",
+    "currency": "USD",
+    "items": [{"name": "Test", "quantity": 1, "unit_amount": 100}]
+  }'
+```
+
+Or use the test script:
+```bash
+./test-chatgpt.sh
 ```
 
 ## MCP Tools
@@ -183,46 +190,55 @@ List PayPal invoices with pagination.
 }
 ```
 
-## GitHub Codespaces Setup
+## Adding to ChatGPT
 
-### Environment Variables in Codespaces
+### Step 1: Start Your Server
 
-You can set environment variables in two ways:
-
-#### Option 1: Repository Secrets (Recommended)
-
-1. Go to your repository settings
-2. Navigate to "Secrets and variables" → "Codespaces"
-3. Add secrets:
-   - `PAYPAL_CLIENT_ID`
-   - `PAYPAL_CLIENT_SECRET`
-   - `PAYPAL_ENVIRONMENT` (value: `sandbox` or `production`)
-
-#### Option 2: Local .env File
-
-Create a `.env` file in the Codespace:
-
-```env
-PAYPAL_CLIENT_ID=your_client_id
-PAYPAL_CLIENT_SECRET=your_client_secret
-PAYPAL_ENVIRONMENT=sandbox
+In GitHub Codespaces or locally:
+```bash
+npm run dev
 ```
 
-### Accessing Your Server
+### Step 2: Get Your Server URL
 
-When running in Codespaces:
-1. The server starts on port 3333
-2. GitHub automatically forwards the port
-3. You'll see a notification with the URL
-4. Click it to access your MCP server
+**In Codespaces:** Your URL will be like:
+```
+https://your-codespace-3333.app.github.dev
+```
+
+Find it in the **Ports** tab (make sure it's set to **Public**!)
+
+**Local:** Use:
+```
+http://localhost:3333
+```
+
+### Step 3: Add to ChatGPT
+
+1. Open ChatGPT app
+2. Go to Settings → Apps (BETA)
+3. Click "New App"
+4. Fill in:
+   - **Name:** PayPal Invoicing
+   - **Description:** Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.
+   - **MCP Server URL:** Your Codespace URL + `/mcp`
+   - **Authentication:** No Auth
+5. Click "Create"
+
+### Step 4: Start Using!
+
+Ask ChatGPT:
+- "Create an invoice for $500 to customer@example.com"
+- "List my PayPal invoices"
+- "Send invoice INV2-XXXX"
 
 ## Architecture
 
 ### Technology Stack
 
-- **MCP SDK**: `@modelcontextprotocol/sdk` v1.24.3
-- **PayPal Agent Toolkit**: `@paypal/agent-toolkit` v1.8.0
-- **Express**: HTTP server for MCP transport
+- **PayPal Agent Toolkit**: `@paypal/agent-toolkit` v1.8.0 - Official PayPal AI integration
+- **OpenAI SDK**: `openai` v4.86.1 - ChatGPT function calling
+- **Express**: HTTP server for API endpoints
 - **TypeScript**: Type-safe development
 - **Zod**: Schema validation
 
@@ -231,13 +247,11 @@ When running in Codespaces:
 ```
 paypal-invoicing-mcp/
 ├── .devcontainer/            # GitHub Codespaces configuration
-│   ├── devcontainer.json    # Codespaces setup
-│   └── README.md            # Codespaces docs
+├── .github/workflows/        # CI/CD pipeline
 ├── src/
-│   ├── server.ts            # Main MCP server setup
-│   ├── toolkit.ts           # PayPal Agent Toolkit configuration
-│   ├── mcp/
-│   │   └── invoices.ts      # Invoice tool implementations
+│   ├── server.ts            # Main ChatGPT app server
+│   ├── formatters.ts        # Rich UI formatting
+│   ├── openapi-spec.ts      # OpenAPI specification
 │   └── utils/
 │       └── logger.ts        # Logging utility
 ├── build/                   # Compiled JavaScript output
