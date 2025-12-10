@@ -3,6 +3,7 @@ import express from 'express';
 import OpenAI from 'openai';
 import { PayPalAgentToolkit } from '@paypal/agent-toolkit/openai';
 import { logger } from './utils/logger.js';
+import { openapiSpec } from './openapi-spec.js';
 
 const app = express();
 app.use(express.json());
@@ -48,14 +49,50 @@ app.get('/health', (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    name: 'PayPal Invoice API for ChatGPT',
+    name: 'PayPal Invoicing',
+    description: 'Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.',
     version: '1.0.0',
     available_tools: Object.keys(tools),
     endpoints: {
       chat: '/chat',
       actions: '/actions',
+      openapi: '/openapi.json',
+      manifest: '/.well-known/ai-plugin.json',
       health: '/health',
     },
+  });
+});
+
+// OpenAPI specification endpoint (required for ChatGPT Apps)
+app.get('/openapi.json', (req, res) => {
+  // Update server URL dynamically
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
+  const spec = {
+    ...openapiSpec,
+    servers: [{ url: serverUrl, description: 'Current server' }]
+  };
+  res.json(spec);
+});
+
+// ChatGPT App manifest (well-known location)
+app.get('/.well-known/ai-plugin.json', (req, res) => {
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
+  res.json({
+    schema_version: 'v1',
+    name_for_human: 'PayPal Invoicing',
+    name_for_model: 'paypal_invoicing',
+    description_for_human: 'Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.',
+    description_for_model: 'A PayPal invoicing assistant that helps users create, send, retrieve, and list PayPal invoices. Creates invoices with QR codes for easy payment. Use this when users want to: create invoices for customers, send existing invoices, check invoice status with dashboards, or list their PayPal invoices. Supports line items, custom amounts, and automatic QR code generation.',
+    auth: {
+      type: 'none'  // Update to 'oauth' when implementing authentication
+    },
+    api: {
+      type: 'openapi',
+      url: `${serverUrl}/openapi.json`
+    },
+    logo_url: 'https://www.paypalobjects.com/marketing/web/logos/paypal-mark-color_new.svg',
+    contact_email: 'support@example.com',
+    legal_info_url: `${serverUrl}/legal`
   });
 });
 

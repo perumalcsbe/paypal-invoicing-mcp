@@ -39,7 +39,34 @@ app.get('/', (req, res) => {
   });
 });
 
-// MCP endpoint
+// MCP endpoint - GET handler for browser testing
+app.get(mcpPath, (req, res) => {
+  res.json({
+    message: 'MCP Server is running',
+    note: 'This endpoint requires POST requests with MCP protocol',
+    usage: {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream'
+      },
+      example: {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'client', version: '1.0.0' }
+        }
+      }
+    },
+    tools: ['create_invoice', 'send_invoice', 'get_invoice', 'list_invoices'],
+    documentation: 'See README.md for integration with Claude Desktop'
+  });
+});
+
+// MCP endpoint - POST handler for actual MCP protocol
 app.post(mcpPath, async (req, res) => {
   try {
     const transport = new StreamableHTTPServerTransport({

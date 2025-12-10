@@ -1,8 +1,10 @@
 # PayPal Invoicing AI Agents
 
-AI agent servers for PayPal invoicing using the PayPal Agent Toolkit. Build agents for both **Claude (MCP)** and **ChatGPT (OpenAI)**.
+Build **ChatGPT Apps** and **Claude MCP Servers** for PayPal invoicing using the PayPal Agent Toolkit.
 
-**✨ Ready to run in GitHub Codespaces!**
+**🤖 Build ChatGPT Apps** - Publish to ChatGPT App Store  
+**🔧 Claude Integration** - MCP server for Claude Desktop  
+**✨ GitHub Codespaces Ready** - Start coding in 2 minutes
 
 ## Features
 
