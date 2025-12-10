@@ -157,29 +157,21 @@ app.get(mcpPath, (req, res) => {
   });
 });
 
-// 🔥 CORRECT MCP HTTP HANDLER - Official boilerplate pattern
+// 🔥 OFFICIAL MCP HTTP HANDLER - ChatGPT Apps pattern
 app.post(mcpPath, async (req, res) => {
   try {
-    logger.info('MCP Request received');
-    
-    // Create transport with session ID generator - this is the official pattern
     const transport = new StreamableHTTPServerTransport({
+      req,
+      res,
       sessionIdGenerator: crypto.randomUUID,
       enableJsonResponse: true,
-    });
+    } as any); // Type assertion for SDK compatibility
 
-    // Connect server to transport
     await mcpServer.connect(transport);
-    
-    // Let transport handle the request - this processes the MCP protocol
-    await transport.handleRequest(req, res, req.body);
-    
-    logger.info('MCP Request completed');
-    
+
   } catch (error: any) {
     logger.error('MCP Error:', error);
-    
-    // Only send error if response not already sent
+
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
