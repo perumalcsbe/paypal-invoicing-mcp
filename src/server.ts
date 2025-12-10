@@ -69,14 +69,11 @@ app.post(mcpPath, async (req, res) => {
     const transport = new StreamableHTTPServerTransport({
       req,
       res,
+      streamMode: "sse",                // 🔥 REQUIRED: forces text/event-stream
       sessionIdGenerator: crypto.randomUUID,
-      enableJsonResponse: false, // ChatGPT expects SSE, not JSON
     } as any);
 
-    // Perform handshake + tool introspection + full MCP handling
-    await mcpServer.connect(transport);
-
-    // 🚫 DO NOT CALL transport.handleRequest() — MCP manages this internally
+    await mcpServer.connect(transport); // 🔥 DO NOT call handleRequest()
 
   } catch (error: any) {
     logger.error("MCP Error:", error);
