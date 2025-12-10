@@ -1,10 +1,10 @@
-# PayPal Invoicing - ChatGPT App
+# PayPal Invoicing MCP Server
 
-Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.
+MCP server for ChatGPT Apps - Create, send, and manage PayPal invoices using PayPal Agent Toolkit.
 
-**🤖 ChatGPT App** - Ready to publish to ChatGPT App Store  
-**✨ GitHub Codespaces Ready** - Start developing in 2 minutes  
-**🎨 Rich UI** - Beautiful formatted responses with tables and emoji
+**🤖 ChatGPT Apps** - Native MCP protocol support  
+**✨ Render.com Ready** - Deploy in 5 minutes  
+**🔧 4 Invoice Tools** - Create, send, get, list invoices
 
 ## Features
 
@@ -12,9 +12,9 @@ Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR code
 - ✅ **Send Invoice** - Send invoices to recipients via email
 - ✅ **Get Invoice** - Retrieve full details of a specific invoice
 - ✅ **List Invoices** - List all invoices with pagination
-- ✅ **Rich UI** - Beautiful markdown formatting with tables and emoji
-- ✅ **ChatGPT App Ready** - Native ChatGPT app support
-- ✅ **GitHub Codespaces** - Pre-configured development environment
+- ✅ **MCP Protocol** - Native Model Context Protocol support
+- ✅ **ChatGPT Apps** - Ready for ChatGPT Apps integration
+- ✅ **PayPal Agent Toolkit** - Official PayPal AI toolkit integration
 
 ## Quick Start with GitHub Codespaces
 
@@ -190,47 +190,49 @@ List PayPal invoices with pagination.
 }
 ```
 
-## Adding to ChatGPT
+## Deploy to Render.com
 
-### Step 1: Start Your Server
+### Step 1: Create Render Account
+1. Go to [render.com](https://render.com)
+2. Sign up with GitHub
 
-In GitHub Codespaces or locally:
-```bash
-npm run dev
+### Step 2: Deploy
+1. Click **"New"** → **"Blueprint"**
+2. Connect repository: `perumalcsbe/paypal-invoicing-mcp`
+3. Render detects `render.yaml`
+4. Click **"Apply"**
+
+### Step 3: Add Environment Variables
+In Render Dashboard → Environment:
 ```
-
-### Step 2: Get Your Server URL
-
-**In Codespaces:** Your URL will be like:
+PAYPAL_CLIENT_ID=your_client_id
+PAYPAL_CLIENT_SECRET=your_client_secret
+PAYPAL_ENVIRONMENT=SANDBOX
+PORT=8080
 ```
-https://your-codespace-3333.app.github.dev
-```
+Click **"Save Changes"**
 
-Find it in the **Ports** tab (make sure it's set to **Public**!)
+### Step 4: Wait for Deployment (~2-3 minutes)
 
-**Local:** Use:
-```
-http://localhost:3333
-```
+## Add to ChatGPT Apps
 
-### Step 3: Add to ChatGPT
-
-1. Open ChatGPT app
-2. Go to Settings → Apps (BETA)
-3. Click "New App"
+1. Open ChatGPT
+2. Settings → Apps (BETA)
+3. Click **"New App"**
 4. Fill in:
    - **Name:** PayPal Invoicing
-   - **Description:** Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.
-   - **MCP Server URL:** Your Codespace URL + `/mcp`
+   - **Description:** Create, send, and manage PayPal invoices
+   - **MCP Server URL:** `https://paypal-invoicing-mcp.onrender.com/mcp`
    - **Authentication:** No Auth
-5. Click "Create"
+5. Click **"Create"**
 
-### Step 4: Start Using!
+## Use Your App
 
 Ask ChatGPT:
 - "Create an invoice for $500 to customer@example.com"
 - "List my PayPal invoices"
 - "Send invoice INV2-XXXX"
+- "Get details for invoice INV2-YYYY"
 
 ## Architecture
 
