@@ -70,7 +70,7 @@ app.post(mcpPath, async (req, res) => {
       req,
       res,
       sessionIdGenerator: crypto.randomUUID,
-      enableJsonResponse: true,
+      enableJsonResponse: false, // ChatGPT expects SSE, not JSON
     } as any);
 
     // Perform handshake + tool introspection + full MCP handling
