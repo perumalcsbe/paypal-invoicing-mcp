@@ -16,6 +16,19 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 
 const app = express();
+
+// CORS middleware for ChatGPT Apps
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 const port = parseInt(process.env.PORT || '3333', 10);
@@ -202,53 +215,96 @@ mcpServer.tool(
   }
 );
 
+// MCP endpoint - OPTIONS handler for CORS preflight
+app.options(mcpPath, (req, res) => {
+  res.sendStatus(200);
+});
+
 // MCP endpoint - GET handler for browser testing
 app.get(mcpPath, (req, res) => {
   res.json({
     message: 'MCP Server for ChatGPT Apps',
     protocol: 'Model Context Protocol',
+    version: '2024-11-05',
     tools: ['create_invoice', 'send_invoice', 'get_invoice', 'list_invoices'],
     usage: 'This endpoint supports MCP protocol for ChatGPT Apps. Use POST with MCP protocol messages.',
+    status: 'ready',
   });
 });
 
 // MCP endpoint - POST handler for actual MCP protocol
 app.post(mcpPath, async (req, res) => {
+  let transport: any = null;
+  
   try {
+    // Log incoming request for debugging
+    logger.info('MCP Request:', {
+      method: req.body?.method,
+      id: req.body?.id,
+      headers: {
+        accept: req.headers.accept,
+        contentType: req.headers['content-type'],
+      }
+    });
+
     // Set Accept header if not present (for ChatGPT compatibility)
     if (!req.headers.accept || !req.headers.accept.includes('text/event-stream')) {
       req.headers.accept = 'application/json, text/event-stream';
     }
 
-    const transport = new StreamableHTTPServerTransport({
+    // Create new transport for this request
+    transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: crypto.randomUUID,
       enableJsonResponse: true,
     });
 
+    // Handle connection close
     res.on('close', () => {
-      try {
-        transport.close();
-      } catch (e) {
-        // Ignore close errors
+      if (transport) {
+        try {
+          transport.close();
+        } catch (e) {
+          logger.error('Transport close error:', e);
+        }
       }
     });
 
-    // Connect and handle request in one session
+    // Connect MCP server to transport
     await mcpServer.connect(transport);
+    
+    // Handle the MCP request
     await transport.handleRequest(req, res, req.body);
     
-    // Close transport after handling request
-    setTimeout(() => {
-      try {
-        transport.close();
-      } catch (e) {
-        // Ignore close errors
-      }
-    }, 100);
-  } catch (error) {
-    logger.error('MCP Error:', error);
+    logger.info('MCP Request completed successfully');
+    
+  } catch (error: any) {
+    logger.error('MCP Error:', {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error' });
+      // Send proper JSON-RPC error response
+      res.status(200).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: error.message || 'Internal server error',
+        },
+        id: req.body?.id || null,
+      });
+    }
+  } finally {
+    // Cleanup transport after a delay
+    if (transport) {
+      setTimeout(() => {
+        try {
+          transport.close();
+        } catch (e) {
+          // Ignore close errors
+        }
+      }, 100);
     }
   }
 });
