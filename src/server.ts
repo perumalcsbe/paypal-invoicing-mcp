@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import OpenAI from 'openai';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { PayPalAgentToolkit } from '@paypal/agent-toolkit/openai';
 import { logger } from './utils/logger.js';
 import { openapiSpec } from './openapi-spec.js';
@@ -10,11 +12,14 @@ import {
   formatInvoiceDetailsForChatGPT,
   formatSendConfirmationForChatGPT
 } from './formatters.js';
+import crypto from 'node:crypto';
+import { z } from 'zod';
 
 const app = express();
 app.use(express.json());
 
 const port = parseInt(process.env.PORT || '3333', 10);
+const mcpPath = '/mcp';
 
 // Initialize PayPal Toolkit for OpenAI
 const paypalToolkit = new PayPalAgentToolkit({
@@ -36,7 +41,17 @@ const paypalToolkit = new PayPalAgentToolkit({
 });
 
 // Get PayPal tools in OpenAI format
-const tools = paypalToolkit.getTools() as Record<string, any>;
+const toolsRaw = paypalToolkit.getTools();
+
+// Log for debugging
+logger.info('Tools type:', Array.isArray(toolsRaw) ? 'Array' : 'Object');
+logger.info('Tools keys/length:', Array.isArray(toolsRaw) ? toolsRaw.length : Object.keys(toolsRaw).length);
+if (Array.isArray(toolsRaw) && toolsRaw.length > 0) {
+  logger.info('First tool structure:', JSON.stringify(Object.keys(toolsRaw[0] || {})));
+}
+
+const tools: Record<string, any> = toolsRaw;
+const toolNames = Object.keys(tools);
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -48,7 +63,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     service: 'paypal-chatgpt-invoice-api',
-    tools: Object.keys(tools),
+    tools: toolNames,
   });
 });
 
@@ -58,8 +73,9 @@ app.get('/', (req, res) => {
     name: 'PayPal Invoicing',
     description: 'Create, send, and manage PayPal invoices using PayPal Agent Toolkit with QR codes and dashboards.',
     version: '1.0.0',
-    available_tools: Object.keys(tools),
+    available_tools: toolNames,
     endpoints: {
+      mcp: mcpPath,  // For ChatGPT Apps (MCP protocol)
       chat: '/chat',
       actions: '/actions',
       openapi: '/openapi.json',
@@ -100,6 +116,120 @@ app.get('/.well-known/ai-plugin.json', (req, res) => {
     contact_email: 'support@example.com',
     legal_info_url: `${serverUrl}/legal`
   });
+});
+
+// Initialize MCP Server for ChatGPT Apps (native MCP support)
+const mcpServer = new McpServer({
+  name: 'paypal-invoicing',
+  version: '1.0.0',
+});
+
+// Register PayPal invoice tools with MCP protocol
+mcpServer.tool(
+  'create_invoice',
+  'Create a draft PayPal invoice with line items and QR code',
+  {
+    recipient_email: z.string().email().describe('Recipient email address'),
+    currency: z.string().default('USD').describe('Currency code'),
+    note: z.string().optional().describe('Invoice note'),
+    items: z.array(z.object({
+      name: z.string().describe('Item name'),
+      quantity: z.number().positive().default(1).describe('Quantity'),
+      unit_amount: z.number().positive().describe('Unit price'),
+    })).optional().describe('Line items'),
+    amount_override: z.number().positive().optional().describe('Total amount override'),
+  },
+  async (input) => {
+    logger.info('MCP: create_invoice', input);
+    const tool = tools['create_invoice' as keyof typeof tools];
+    const result = await tool.execute(input, {
+      toolCallId: crypto.randomUUID(),
+      messages: [],
+    });
+    return { content: [{ type: 'text', text: result }] };
+  }
+);
+
+mcpServer.tool(
+  'send_invoice',
+  'Send an existing PayPal invoice to the recipient',
+  {
+    invoice_id: z.string().describe('Invoice ID to send'),
+  },
+  async (input) => {
+    logger.info('MCP: send_invoice', input);
+    const tool = tools['send_invoice' as keyof typeof tools];
+    const result = await tool.execute(input, {
+      toolCallId: crypto.randomUUID(),
+      messages: [],
+    });
+    return { content: [{ type: 'text', text: result }] };
+  }
+);
+
+mcpServer.tool(
+  'get_invoice',
+  'Get details of a specific PayPal invoice',
+  {
+    invoice_id: z.string().describe('Invoice ID to retrieve'),
+  },
+  async (input) => {
+    logger.info('MCP: get_invoice', input);
+    const tool = tools['get_invoice' as keyof typeof tools];
+    const result = await tool.execute(input, {
+      toolCallId: crypto.randomUUID(),
+      messages: [],
+    });
+    return { content: [{ type: 'text', text: result }] };
+  }
+);
+
+mcpServer.tool(
+  'list_invoices',
+  'List PayPal invoices with optional filters',
+  {
+    page: z.number().optional().describe('Page number'),
+    page_size: z.number().optional().describe('Results per page'),
+  },
+  async (input) => {
+    logger.info('MCP: list_invoices', input);
+    const tool = tools['list_invoices' as keyof typeof tools];
+    const result = await tool.execute(input || {}, {
+      toolCallId: crypto.randomUUID(),
+      messages: [],
+    });
+    return { content: [{ type: 'text', text: result }] };
+  }
+);
+
+// MCP endpoint - GET handler for browser testing
+app.get(mcpPath, (req, res) => {
+  res.json({
+    message: 'MCP Server for ChatGPT Apps',
+    protocol: 'Model Context Protocol',
+    tools: ['create_invoice', 'send_invoice', 'get_invoice', 'list_invoices'],
+    usage: 'This endpoint supports MCP protocol for ChatGPT Apps. Use POST with MCP protocol messages.',
+  });
+});
+
+// MCP endpoint - POST handler for actual MCP protocol
+app.post(mcpPath, async (req, res) => {
+  try {
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: crypto.randomUUID,
+      enableJsonResponse: true,
+    });
+
+    res.on('close', () => transport.close());
+
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    logger.error('MCP Error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 });
 
 // Chat endpoint - Full ChatGPT integration with function calling
