@@ -93,7 +93,7 @@ Go to: https://github.com/perumalcsbe/paypal-invoicing-mcp/settings/secrets/code
 Add these secrets:
 - `PAYPAL_CLIENT_ID`
 - `PAYPAL_CLIENT_SECRET`
-- `PAYPAL_ENVIRONMENT` (value: `sandbox`)
+- `PAYPAL_ENVIRONMENT` (value: `SANDBOX`)
 
 ### 3. Open in Codespaces
 

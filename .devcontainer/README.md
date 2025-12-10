@@ -18,7 +18,7 @@ This directory contains the configuration for GitHub Codespaces.
    ```env
    PAYPAL_CLIENT_ID=your_client_id
    PAYPAL_CLIENT_SECRET=your_client_secret
-   PAYPAL_ENVIRONMENT=sandbox
+   PAYPAL_ENVIRONMENT=SANDBOX
    ```
 4. Run the development server:
    ```bash
@@ -32,7 +32,7 @@ Set these as Codespaces secrets or in a `.env` file:
 
 - `PAYPAL_CLIENT_ID` - Your PayPal API Client ID
 - `PAYPAL_CLIENT_SECRET` - Your PayPal API Client Secret
-- `PAYPAL_ENVIRONMENT` - Either `sandbox` or `production`
+- `PAYPAL_ENVIRONMENT` - Either `SANDBOX` or `PRODUCTION`
 
 ## Port Forwarding
 

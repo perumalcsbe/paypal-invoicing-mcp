@@ -44,7 +44,7 @@ git push -u origin main
 
    **Secret 3:**
    - Name: `PAYPAL_ENVIRONMENT`
-   - Value: `sandbox` (or `production` for live)
+   - Value: `SANDBOX` (or `PRODUCTION` for live)
 
 ## Step 4: Open in Codespaces
 

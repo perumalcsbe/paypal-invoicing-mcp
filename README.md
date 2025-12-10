@@ -45,7 +45,7 @@ Create a `.env` file in the root directory:
 # PayPal API Credentials
 PAYPAL_CLIENT_ID=your_client_id_here
 PAYPAL_CLIENT_SECRET=your_client_secret_here
-PAYPAL_ENVIRONMENT=sandbox  # or 'production'
+PAYPAL_ENVIRONMENT=SANDBOX  # or 'PRODUCTION'
 
 # Server Configuration
 PORT=3333

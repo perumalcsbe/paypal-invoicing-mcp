@@ -16,14 +16,14 @@
    - Add these secrets:
      - `PAYPAL_CLIENT_ID` = your_client_id
      - `PAYPAL_CLIENT_SECRET` = your_client_secret
-     - `PAYPAL_ENVIRONMENT` = sandbox
+     - `PAYPAL_ENVIRONMENT` = SANDBOX
    
    **Method B: Create .env file**
    ```bash
    cat > .env << EOF
    PAYPAL_CLIENT_ID=your_client_id_here
    PAYPAL_CLIENT_SECRET=your_client_secret_here
-   PAYPAL_ENVIRONMENT=sandbox
+   PAYPAL_ENVIRONMENT=SANDBOX
    EOF
    ```
 
@@ -54,7 +54,7 @@
    # PayPal API Credentials
    PAYPAL_CLIENT_ID=your_client_id_here
    PAYPAL_CLIENT_SECRET=your_client_secret_here
-   PAYPAL_ENVIRONMENT=sandbox
+   PAYPAL_ENVIRONMENT=SANDBOX
    
    # Server Configuration
    PORT=3333
@@ -220,7 +220,7 @@ npm start
 
 ## Testing with Real PayPal API
 
-1. Set `PAYPAL_ENVIRONMENT=sandbox` in `.env` or Codespaces secrets
+1. Set `PAYPAL_ENVIRONMENT=SANDBOX` in `.env` or Codespaces secrets
 2. Use sandbox credentials from [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/)
 3. Test with sandbox accounts (create buyer/seller test accounts in the dashboard)
 4. Once verified, switch to production credentials for live use
