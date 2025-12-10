@@ -157,7 +157,7 @@ app.get(mcpPath, (req, res) => {
   });
 });
 
-// 🔥 OFFICIAL MCP HTTP HANDLER - ChatGPT Apps pattern
+// 🔥 OFFICIAL + WORKING MCP ENDPOINT (ChatGPT-compatible)
 app.post(mcpPath, async (req, res) => {
   try {
     const transport = new StreamableHTTPServerTransport({
@@ -165,19 +165,22 @@ app.post(mcpPath, async (req, res) => {
       res,
       sessionIdGenerator: crypto.randomUUID,
       enableJsonResponse: true,
-    } as any); // Type assertion for SDK compatibility
+    } as any);
 
+    // Perform handshake + tool introspection + full MCP handling
     await mcpServer.connect(transport);
 
+    // 🚫 DO NOT CALL transport.handleRequest() — MCP manages this internally
+
   } catch (error: any) {
-    logger.error('MCP Error:', error);
+    logger.error("MCP Error:", error);
 
     if (!res.headersSent) {
       res.status(500).json({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         error: {
           code: -32603,
-          message: error.message || 'Internal server error',
+          message: error.message ?? "Internal server error",
         },
         id: null,
       });
