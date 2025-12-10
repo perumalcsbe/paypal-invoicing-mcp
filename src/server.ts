@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import crypto from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { logger } from './utils/logger.js';
 import { registerInvoiceTools } from './mcp/invoices.js';
 
@@ -22,9 +22,6 @@ const mcpServer = new McpServer({
 
 // Register all invoice tools
 registerInvoiceTools(mcpServer);
-
-// Session management for SSE transports
-const sessions = new Map<string, SSEServerTransport>();
 
 /* -------------------------------
    Health Check Endpoint
@@ -51,79 +48,27 @@ app.get('/', (req, res) => {
 });
 
 /* -------------------------------
-   MCP SSE Connection (GET)
+   MCP Endpoint (GET & POST)
+   Handles both SSE streams and JSON-RPC messages
 -------------------------------- */
-app.get(mcpPath, async (req, res) => {
-  try {
-    logger.info(`Establishing SSE connection`);
-    
-    const transport = new SSEServerTransport(mcpPath, res);
-    const sessionId = transport.sessionId;
-    sessions.set(sessionId, transport);
-    
-    // Clean up on connection close
-    req.on('close', () => {
-      logger.info(`SSE connection closed for session: ${sessionId}`);
-      sessions.delete(sessionId);
-    });
-    
-    // Start the SSE stream
-    await transport.start();
-    
-    // Connect to MCP server
-    await mcpServer.connect(transport);
-    
-  } catch (error: any) {
-    logger.error("SSE Error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32603,
-          message: error.message ?? "Internal server error",
-        },
-        id: null,
-      });
-    }
-  }
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: () => crypto.randomUUID(),
 });
 
-/* -------------------------------
-   MCP Message Handler (POST)
--------------------------------- */
-app.post(mcpPath, async (req, res) => {
+// Connect once
+await mcpServer.connect(transport);
+
+// Handle both GET (for SSE) and POST (for messages)
+app.all(mcpPath, async (req, res) => {
   try {
-    const sessionId = req.headers['x-mcp-session-id'] as string;
+    logger.info(`MCP ${req.method} request received:`, req.body?.method || 'SSE connection');
     
-    if (!sessionId) {
-      return res.status(400).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32600,
-          message: "Missing x-mcp-session-id header",
-        },
-        id: null,
-      });
-    }
-    
-    const transport = sessions.get(sessionId);
-    
-    if (!transport) {
-      return res.status(404).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32001,
-          message: "Session not found",
-        },
-        id: null,
-      });
-    }
-    
-    // Handle the POST message via the transport
-    await transport.handlePostMessage(req, res, req.body);
+    // Let the transport handle the request
+    await transport.handleRequest(req, res, req.body);
     
   } catch (error: any) {
-    logger.error("MCP POST Error:", error);
+    logger.error("MCP Error:", error);
+    
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: "2.0",
