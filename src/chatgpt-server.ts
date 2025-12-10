@@ -4,6 +4,12 @@ import OpenAI from 'openai';
 import { PayPalAgentToolkit } from '@paypal/agent-toolkit/openai';
 import { logger } from './utils/logger.js';
 import { openapiSpec } from './openapi-spec.js';
+import {
+  formatInvoiceForChatGPT,
+  formatInvoiceListForChatGPT,
+  formatInvoiceDetailsForChatGPT,
+  formatSendConfirmationForChatGPT
+} from './formatters.js';
 
 const app = express();
 app.use(express.json());
@@ -150,11 +156,34 @@ app.post('/chat', async (req, res) => {
           messages: conversationMessages,
         });
 
-        // Add function result to conversation
+        // Format result for better UI rendering
+        let formattedResult: string;
+        try {
+          const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+          
+          // Format based on action type
+          if (functionName === 'create_invoice') {
+            formattedResult = formatInvoiceForChatGPT(parsedResult);
+          } else if (functionName === 'list_invoices') {
+            formattedResult = formatInvoiceListForChatGPT(parsedResult);
+          } else if (functionName === 'get_invoice') {
+            formattedResult = formatInvoiceDetailsForChatGPT(parsedResult);
+          } else if (functionName === 'send_invoice') {
+            formattedResult = formatSendConfirmationForChatGPT(functionArgs.invoice_id);
+          } else {
+            // Fallback to JSON
+            formattedResult = JSON.stringify(parsedResult, null, 2);
+          }
+        } catch (e) {
+          // If formatting fails, use original result
+          formattedResult = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+        }
+
+        // Add formatted result to conversation
         conversationMessages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
-          content: typeof result === 'string' ? result : JSON.stringify(result),
+          content: formattedResult,
         });
       }
 
@@ -206,11 +235,37 @@ app.post('/actions/:action', async (req, res) => {
       messages: [],
     });
 
-    res.json({
-      success: true,
-      action: action,
-      result: typeof result === 'string' ? JSON.parse(result) : result,
-    });
+    // Format result for better UI rendering
+    let formattedResult: string;
+    try {
+      const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+      
+      // Format based on action type
+      if (action === 'create_invoice') {
+        formattedResult = formatInvoiceForChatGPT(parsedResult);
+      } else if (action === 'list_invoices') {
+        formattedResult = formatInvoiceListForChatGPT(parsedResult);
+      } else if (action === 'get_invoice') {
+        formattedResult = formatInvoiceDetailsForChatGPT(parsedResult);
+      } else if (action === 'send_invoice') {
+        formattedResult = formatSendConfirmationForChatGPT(params.invoice_id);
+      } else {
+        formattedResult = JSON.stringify(parsedResult, null, 2);
+      }
+      
+      res.json({
+        success: true,
+        action: action,
+        result: parsedResult,
+        formatted: formattedResult // Markdown-formatted version
+      });
+    } catch (error) {
+      res.json({
+        success: true,
+        action: action,
+        result: typeof result === 'string' ? JSON.parse(result) : result,
+      });
+    }
 
   } catch (error: any) {
     logger.error('Action error:', error);
