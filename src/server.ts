@@ -215,15 +215,36 @@ app.get(mcpPath, (req, res) => {
 // MCP endpoint - POST handler for actual MCP protocol
 app.post(mcpPath, async (req, res) => {
   try {
+    // Set Accept header if not present (for ChatGPT compatibility)
+    if (!req.headers.accept || !req.headers.accept.includes('text/event-stream')) {
+      req.headers.accept = 'application/json, text/event-stream';
+    }
+
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: crypto.randomUUID,
       enableJsonResponse: true,
     });
 
-    res.on('close', () => transport.close());
+    res.on('close', () => {
+      try {
+        transport.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    });
 
+    // Connect and handle request in one session
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
+    
+    // Close transport after handling request
+    setTimeout(() => {
+      try {
+        transport.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    }, 100);
   } catch (error) {
     logger.error('MCP Error:', error);
     if (!res.headersSent) {
