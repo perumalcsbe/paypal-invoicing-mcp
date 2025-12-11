@@ -13,7 +13,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, mcp-session-id');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -33,22 +33,27 @@ const port = parseInt(process.env.PORT || '8080', 10);
 const mcpPath = '/mcp';
 
 /* -------------------------------
-   Initialize MCP Server
+   MCP Server Factory
+   Creates a fresh server instance for each connection
 -------------------------------- */
-const mcpServer = new McpServer({
-  name: 'paypal-agent-mcp',
-  version: '1.0.0',
-});
+function createMcpServer() {
+  const server = new McpServer({
+    name: 'paypal-agent-mcp',
+    version: '1.0.0',
+  });
 
-// Register all invoice tools
-registerInvoiceTools(mcpServer);
+  // Register all invoice tools
+  registerInvoiceTools(server);
+
+  return server;
+}
 
 /* -------------------------------
    Health Check Endpoint
 -------------------------------- */
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     service: 'paypal-agent-mcp',
     version: '1.0.0',
   });
@@ -74,22 +79,25 @@ app.get('/', (req, res) => {
 app.all(mcpPath, async (req, res) => {
   try {
     logger.info(`MCP ${req.method} request received`);
-    
-    // Create a new transport for EACH request (stateless HTTP)
+
+    // Create a fresh MCP server instance for THIS request
+    const mcpServer = createMcpServer();
+
+    // Create a new transport for this request
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
     });
-    
-    // Connect this transport to the MCP server
+
+    // Connect the transport to the server
     await mcpServer.connect(transport);
-    
+
     // Let the transport handle the request completely
     // Do NOT pass pre-parsed body - let transport read raw stream
     await transport.handleRequest(req, res);
-    
+
   } catch (error: any) {
     logger.error("MCP Error:", error);
-    
+
     if (!res.headersSent) {
       res.status(500).setHeader('Content-Type', 'application/json').json({
         jsonrpc: "2.0",
