@@ -13,6 +13,8 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, mcp-session-id');
+  // CRITICAL: Expose Mcp-Session-Id header for ChatGPT Apps
+  res.header('Access-Control-Expose-Headers', 'mcp-session-id');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
